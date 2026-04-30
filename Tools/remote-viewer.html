@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GrabKit Remote Viewer</title>
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; margin: 24px; }
+    input, button { font: inherit; }
+    pre { background: #111; color: #eee; padding: 16px; overflow: auto; border-radius: 8px; }
+    .row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+    .node { padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin: 6px 0; cursor: pointer; }
+    .node:hover { background: #f6f6f6; }
+  </style>
+</head>
+<body>
+  <h1>GrabKit Remote Viewer</h1>
+  <div class="row">
+    <label>Base URL <input id="base" size="32" value="http://localhost:9777"></label>
+    <button onclick="loadTree()">Load tree</button>
+    <button onclick="setMode(true)">Inspect on</button>
+    <button onclick="setMode(false)">Inspect off</button>
+  </div>
+  <div id="nodes"></div>
+  <h2>Selected / Response</h2>
+  <pre id="out">Click “Load tree”.</pre>
+<script>
+const out = document.getElementById('out');
+const nodes = document.getElementById('nodes');
+const base = () => document.getElementById('base').value.replace(/\/$/, '');
+const show = value => out.textContent = JSON.stringify(value, null, 2);
+async function api(path, opts = {}) {
+  const res = await fetch(base() + path, opts);
+  return await res.json();
+}
+async function loadTree() {
+  const tree = await api('/grab/tree');
+  show(tree);
+  nodes.innerHTML = '';
+  for (const node of tree.nodes || []) {
+    const div = document.createElement('div');
+    div.className = 'node';
+    div.innerHTML = `<strong>${node.id}</strong><br>${node.role}${node.component ? ' · ' + node.component : ''}`;
+    div.onclick = async () => show(await api('/grab/select-id', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: node.id})
+    }));
+    nodes.appendChild(div);
+  }
+}
+async function setMode(enabled) {
+  show(await api('/grab/mode', {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({enabled})
+  }));
+}
+</script>
+</body>
+</html>
