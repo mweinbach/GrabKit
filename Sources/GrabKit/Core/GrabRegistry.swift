@@ -94,12 +94,14 @@ public final class GrabRegistry {
     public func setInspecting(_ enabled: Bool) {
         guard isInspecting != enabled else { return }
         isInspecting = enabled
+        GrabDebugLog.inspectModeChanged(enabled)
         emit()
     }
 
     @discardableResult
     public func toggleInspecting() -> Bool {
         isInspecting.toggle()
+        GrabDebugLog.inspectModeChanged(isInspecting)
         emit()
         return isInspecting
     }
@@ -107,6 +109,7 @@ public final class GrabRegistry {
     public func clearSelection() {
         guard selectedID != nil else { return }
         selectedID = nil
+        GrabDebugLog.selectionCleared()
         emit()
     }
 
@@ -118,6 +121,7 @@ public final class GrabRegistry {
             return GrabSelection(selectedID: nil, candidateIDs: [])
         }
         selectedID = id
+        GrabDebugLog.selectionChanged(selectedID: id, candidateIDs: id.map { [$0] } ?? [])
         emit()
         return GrabSelection(selectedID: id, candidateIDs: id.map { [$0] } ?? [])
     }
@@ -132,6 +136,7 @@ public final class GrabRegistry {
             .sorted(by: selectionSort)
         let selected = candidates.first?.id
         selectedID = selected
+        GrabDebugLog.selectionChanged(selectedID: selected, candidateIDs: candidates.map(\.id))
         emit()
         return GrabSelection(selectedID: selected, candidateIDs: candidates.map(\.id))
     }

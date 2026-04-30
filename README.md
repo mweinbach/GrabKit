@@ -127,12 +127,17 @@ The selected element panel includes quick copy buttons and a `What should change
 here?` field. Drag the panel out of the way when it covers UI you want to
 select. Use `Copy Prompt` to copy a readable Markdown prompt containing your
 comment plus the selected node's metadata and full JSON.
+The panel and candidate buttons expose stable accessibility identifiers so
+desktop automation tools can drive the inspector directly.
 
 For nested cards, annotate each reusable card or component with a stable ID and
 `parentID`. When multiple annotated nodes overlap at the click point, the
 selection panel shows the stack so you can switch between the inner element and
 its parent cards. Attach observable or model values with `dataSources`; each
 `.observable(...)` records the file and line where the data snapshot was added.
+Frontmost overlays such as sheets and popovers are prioritized ahead of
+obscured content underneath them, while deeper controls inside the overlay can
+still win over the overlay container itself.
 
 ```swift
 RecoveryCard(day: store.currentDay)

@@ -55,6 +55,8 @@ public struct GrabOverlay: View {
                                 node: node,
                                 frame: frame,
                                 rootOrigin: geometry.frame(in: .global).origin,
+                                rootSize: geometry.size,
+                                topSafeInset: geometry.safeAreaInsets.top,
                                 isSelected: node.id == model.snapshot.selectedID
                             )
                         }
@@ -119,6 +121,8 @@ private struct GrabNodeBox: View {
     let node: GrabNode
     let frame: GrabRect
     let rootOrigin: CGPoint
+    let rootSize: CGSize
+    let topSafeInset: CGFloat
     let isSelected: Bool
 
     var body: some View {
@@ -138,7 +142,7 @@ private struct GrabNodeBox: View {
                 .padding(.vertical, 2)
                 .background((isSelected ? Color.orange : Color.blue).opacity(0.90))
                 .clipShape(RoundedRectangle(cornerRadius: 3))
-                .offset(x: 0, y: -16)
+                .offset(x: labelOffset.width, y: labelOffset.height)
         }
         .frame(width: max(1, frame.width), height: max(1, frame.height))
         .position(
@@ -152,6 +156,26 @@ private struct GrabNodeBox: View {
             return "\(component) · \(node.id)"
         }
         return node.id
+    }
+
+    private var labelOffset: CGSize {
+        let localMinX = frame.x - Double(rootOrigin.x)
+        let localMinY = frame.y - Double(rootOrigin.y)
+        let estimatedLabelWidth = min(max(Double(label.count) * 6.4, 84), 240)
+        let availableRight = Double(rootSize.width) - localMinX - frame.width
+
+        let x: Double
+        if availableRight < estimatedLabelWidth && localMinX > estimatedLabelWidth {
+            x = frame.width - estimatedLabelWidth
+        } else {
+            x = 0
+        }
+
+        let preferredTopY = localMinY - 16
+        let minimumSafeTop = Double(topSafeInset) + 4
+        let y: Double = preferredTopY < minimumSafeTop ? 4 : -16
+
+        return CGSize(width: x, height: y)
     }
 }
 
@@ -214,6 +238,7 @@ private struct GrabSelectionPanel: View {
                 .font(.system(.headline, design: .monospaced))
                 .lineLimit(2)
                 .textSelection(.enabled)
+                .accessibilityIdentifier("grabkit.selection.id")
 
             HStack(spacing: 8) {
                 rolePill
@@ -224,6 +249,7 @@ private struct GrabSelectionPanel: View {
                         .padding(.vertical, 3)
                         .background(.thinMaterial)
                         .clipShape(Capsule())
+                        .accessibilityIdentifier("grabkit.selection.component")
                 }
             }
 
@@ -231,6 +257,7 @@ private struct GrabSelectionPanel: View {
                 Text("x: \(Int(frame.x))  y: \(Int(frame.y))  w: \(Int(frame.width))  h: \(Int(frame.height))")
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("grabkit.selection.frame")
             }
 
             if let source = node.source {
@@ -247,16 +274,21 @@ private struct GrabSelectionPanel: View {
             HStack(spacing: 8) {
                 TextField("What should change here?", text: $promptComment)
                     .textFieldStyle(.roundedBorder)
+                    .accessibilityIdentifier("grabkit.selection.comment")
+                    .accessibilityLabel("GrabKit prompt comment")
                 Button("Copy Prompt") {
                     _ = GrabClipboard.copy(
                         GrabPromptBuilder.prompt(for: node, in: snapshot, comment: promptComment)
                     )
                 }
                 .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("grabkit.selection.copyPrompt")
+                .accessibilityLabel("Copy GrabKit prompt")
             }
 
             HStack {
                 Button("Copy ID") { _ = GrabClipboard.copy(node.id) }
+                    .accessibilityIdentifier("grabkit.selection.copyID")
                 Button("Copy JSON") {
                     Task { @MainActor in
                         if let json = GrabRegistry.shared.nodeJSONString(id: node.id) {
@@ -264,8 +296,10 @@ private struct GrabSelectionPanel: View {
                         }
                     }
                 }
+                .accessibilityIdentifier("grabkit.selection.copyJSON")
                 if let xctest = node.copy["xctest"] {
                     Button("Copy XCTest") { _ = GrabClipboard.copy(xctest) }
+                        .accessibilityIdentifier("grabkit.selection.copyXCTest")
                 }
             }
             .buttonStyle(.bordered)
@@ -276,6 +310,9 @@ private struct GrabSelectionPanel: View {
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .shadow(radius: 10)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("grabkit.selection.panel")
+        .accessibilityLabel("GrabKit selection panel")
     }
 
     private var rolePill: some View {
@@ -295,14 +332,36 @@ private struct GrabSelectionPanel: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 ForEach(candidateNodes) { candidate in
-                    Button(stackLabel(for: candidate)) {
+                    Button {
                         Task { @MainActor in _ = GrabRegistry.shared.select(id: candidate.id) }
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Text(stackLabel(for: candidate))
+                                    .font(.caption.weight(.semibold))
+                                if candidate.id == candidateNodes.first?.id {
+                                    Text("frontmost")
+                                        .font(.caption2)
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 2)
+                                        .background(Color.orange.opacity(0.15))
+                                        .clipShape(Capsule())
+                                }
+                            }
+
+                            Text(stackMetadata(for: candidate))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     .buttonStyle(.bordered)
                     .disabled(candidate.id == node.id)
+                    .accessibilityIdentifier("grabkit.candidate.\(candidate.id)")
+                    .accessibilityLabel(stackAccessibilityLabel(for: candidate))
                 }
             }
         }
+        .accessibilityIdentifier("grabkit.selection.candidates")
     }
 
     private func stackLabel(for candidate: GrabNode) -> String {
@@ -310,6 +369,17 @@ private struct GrabSelectionPanel: View {
             return component
         }
         return candidate.id
+    }
+
+    private func stackMetadata(for candidate: GrabNode) -> String {
+        let depth = max(candidate.path.count - 1, 0)
+        let area = Int(candidate.frame?.area ?? 0)
+        return "depth \(depth) · order \(candidate.renderOrder) · area \(area)"
+    }
+
+    private func stackAccessibilityLabel(for candidate: GrabNode) -> String {
+        let frontmost = candidate.id == candidateNodes.first?.id ? ", frontmost candidate" : ""
+        return "\(stackLabel(for: candidate)), \(stackMetadata(for: candidate))\(frontmost)"
     }
 }
 #endif

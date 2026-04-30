@@ -194,6 +194,11 @@ where the exported data came from. It still does not scrape arbitrary
 `@Observable` or `@State` values automatically; pass the values that are safe
 and useful for debugging.
 
+When multiple annotated nodes overlap, GrabKit prefers the frontmost node first
+and then falls back to deeper child context before frame-area heuristics. That
+usually gives the expected result for sheets, popovers, and overlaid cards while
+still letting you switch candidates in the inspector panel.
+
 ## Annotate one-off important UI
 
 Use direct `.grab(...)` calls for important UI that does not come from a shared component:
