@@ -26,6 +26,8 @@ Tools/                     curl CLI and tiny browser viewer
 Tests/                     Core registry tests
 ```
 
+Start with [Docs/ImplementationGuide.md](Docs/ImplementationGuide.md) if you want the easiest way to add GrabKit to an app. In short: install `.grabRoot(...)` once at `ContentView` or your app shell, then annotate reusable components so coverage spreads through the app without touching every screen.
+
 ## Quick start: SwiftUI
 
 ```swift
