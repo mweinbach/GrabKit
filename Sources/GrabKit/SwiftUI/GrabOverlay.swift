@@ -23,6 +23,7 @@ private final class GrabOverlayModel: ObservableObject {
 public struct GrabOverlay: View {
     @StateObject private var model = GrabOverlayModel()
     @State private var selectionPanelOffset: CGSize = .zero
+    @State private var selectionCandidateIDs: [String] = []
     @GestureState private var selectionPanelDrag: CGSize = .zero
 
     public init() {}
@@ -41,7 +42,10 @@ public struct GrabOverlay: View {
                                     x: Double(value.location.x + rootOrigin.x),
                                     y: Double(value.location.y + rootOrigin.y)
                                 )
-                                Task { @MainActor in _ = GrabRegistry.shared.select(point: point) }
+                                Task { @MainActor in
+                                    let selection = GrabRegistry.shared.select(point: point)
+                                    selectionCandidateIDs = selection.candidateIDs
+                                }
                             }
                         )
 
@@ -61,7 +65,11 @@ public struct GrabOverlay: View {
                         .padding(12)
 
                     if let selectedNode {
-                        GrabSelectionPanel(node: selectedNode)
+                        GrabSelectionPanel(
+                            node: selectedNode,
+                            snapshot: model.snapshot,
+                            candidateIDs: selectionCandidateIDs
+                        )
                             .id(selectedNode.id)
                             .padding(12)
                             .offset(
@@ -72,6 +80,15 @@ public struct GrabOverlay: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                     }
                 }
+            }
+        }
+        .onChange(of: model.snapshot.selectedID) { selectedID in
+            guard let selectedID else {
+                selectionCandidateIDs = []
+                return
+            }
+            if !selectionCandidateIDs.contains(selectedID) {
+                selectionCandidateIDs = [selectedID]
             }
         }
         .allowsHitTesting(model.snapshot.isInspecting)
@@ -187,6 +204,8 @@ private struct GrabStatusPill: View {
 
 private struct GrabSelectionPanel: View {
     let node: GrabNode
+    let snapshot: GrabSnapshot
+    let candidateIDs: [String]
     @State private var promptComment = ""
 
     var body: some View {
@@ -221,12 +240,16 @@ private struct GrabSelectionPanel: View {
                     .textSelection(.enabled)
             }
 
+            if candidateNodes.count > 1 {
+                candidateStack
+            }
+
             HStack(spacing: 8) {
                 TextField("What should change here?", text: $promptComment)
                     .textFieldStyle(.roundedBorder)
                 Button("Copy Prompt") {
                     _ = GrabClipboard.copy(
-                        GrabPromptBuilder.prompt(for: node, comment: promptComment)
+                        GrabPromptBuilder.prompt(for: node, in: snapshot, comment: promptComment)
                     )
                 }
                 .buttonStyle(.borderedProminent)
@@ -262,6 +285,31 @@ private struct GrabSelectionPanel: View {
             .padding(.vertical, 3)
             .background(Color.secondary.opacity(0.15))
             .clipShape(Capsule())
+    }
+
+    private var candidateNodes: [GrabNode] {
+        candidateIDs.compactMap { id in snapshot.nodes.first { $0.id == id } }
+    }
+
+    private var candidateStack: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(candidateNodes) { candidate in
+                    Button(stackLabel(for: candidate)) {
+                        Task { @MainActor in _ = GrabRegistry.shared.select(id: candidate.id) }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(candidate.id == node.id)
+                }
+            }
+        }
+    }
+
+    private func stackLabel(for candidate: GrabNode) -> String {
+        if let component = candidate.component, !component.isEmpty {
+            return component
+        }
+        return candidate.id
     }
 }
 #endif

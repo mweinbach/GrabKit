@@ -129,6 +129,60 @@ final class GrabKitTests: XCTestCase {
         XCTAssertTrue(prompt.contains("\"token\" : \"button.primary\""))
     }
 
+    func testPromptIncludesNestedContextAndObservableDataSources() {
+        let screen = GrabNode(
+            id: "screen.dashboard",
+            role: .container,
+            component: "DashboardView",
+            children: ["dashboard.recoveryCard"],
+            accessibility: GrabAccessibility(identifier: "screen.dashboard"),
+            updatedAt: Date(timeIntervalSince1970: 0)
+        )
+        let card = GrabNode(
+            id: "dashboard.recoveryCard",
+            role: .container,
+            component: "RecoveryCard",
+            parentID: "screen.dashboard",
+            children: ["dashboard.recoveryCard.title"],
+            path: ["screen.dashboard", "dashboard.recoveryCard"],
+            accessibility: GrabAccessibility(identifier: "dashboard.recoveryCard"),
+            dataSources: [
+                GrabDataSource(
+                    name: "DashboardStore",
+                    values: ["currentDay": "Rest Day", "nextWorkout": "Push Day"],
+                    source: GrabSource(fileID: "Workouts_iOS/DashboardView.swift", line: 88, function: "body")
+                )
+            ],
+            updatedAt: Date(timeIntervalSince1970: 0)
+        )
+        let title = GrabNode(
+            id: "dashboard.recoveryCard.title",
+            role: .text,
+            component: "CardTitle",
+            parentID: "dashboard.recoveryCard",
+            path: ["screen.dashboard", "dashboard.recoveryCard", "dashboard.recoveryCard.title"],
+            accessibility: GrabAccessibility(identifier: "dashboard.recoveryCard.title"),
+            content: .safeText("Recovery Time"),
+            updatedAt: Date(timeIntervalSince1970: 0)
+        )
+        let snapshot = GrabSnapshot(
+            isInspecting: true,
+            selectedID: "dashboard.recoveryCard",
+            nodes: [screen, card, title]
+        )
+
+        let prompt = GrabPromptBuilder.prompt(for: card, in: snapshot, comment: "Fix this card.")
+
+        XCTAssertTrue(prompt.contains("## Nested UI Context"))
+        XCTAssertTrue(prompt.contains("DashboardView (screen.dashboard)"))
+        XCTAssertTrue(prompt.contains("CardTitle (dashboard.recoveryCard.title)"))
+        XCTAssertTrue(prompt.contains("## Observable Data"))
+        XCTAssertTrue(prompt.contains("DashboardStore"))
+        XCTAssertTrue(prompt.contains("Workouts_iOS/DashboardView.swift:88 in body"))
+        XCTAssertTrue(prompt.contains("\"currentDay\" : \"Rest Day\""))
+        XCTAssertTrue(prompt.contains("\"nextWorkout\" : \"Push Day\""))
+    }
+
     func testPromptWithEmptyCommentStillIncludesContext() {
         let node = GrabNode(
             id: "settings.notificationsToggle",
@@ -142,6 +196,31 @@ final class GrabKitTests: XCTestCase {
         XCTAssertTrue(prompt.contains("(No comment provided.)"))
         XCTAssertTrue(prompt.contains("- ID: settings.notificationsToggle"))
         XCTAssertTrue(prompt.contains("## Full Node JSON"))
+    }
+
+    func testRegistryStoresObservableDataSources() async throws {
+        let node = await MainActor.run { () -> GrabNode? in
+            let registry = GrabRegistry()
+            registry.upsert(
+                GrabDescriptor(
+                    id: "dashboard.recoveryCard",
+                    role: .container,
+                    component: "RecoveryCard",
+                    dataSources: [
+                        GrabDataSource(
+                            name: "DashboardStore",
+                            values: ["currentDay": "Rest Day"],
+                            source: GrabSource(fileID: "Workouts_iOS/DashboardView.swift", line: 88, function: "body")
+                        )
+                    ]
+                )
+            )
+            return registry.node(id: "dashboard.recoveryCard")
+        }
+
+        XCTAssertEqual(node?.dataSources.first?.name, "DashboardStore")
+        XCTAssertEqual(node?.dataSources.first?.values["currentDay"], GrabJSONValue.string("Rest Day"))
+        XCTAssertEqual(node?.dataSources.first?.source?.fileID, "Workouts_iOS/DashboardView.swift")
     }
 
     func testTransportDefaultsToDisabled() {

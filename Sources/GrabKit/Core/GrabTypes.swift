@@ -46,6 +46,32 @@ public struct GrabSource: Codable, Sendable, Equatable {
     }
 }
 
+public struct GrabDataSource: Codable, Sendable, Equatable {
+    public var name: String
+    public var values: [String: GrabJSONValue]
+    public var source: GrabSource?
+
+    public init(name: String, values: [String: GrabJSONValue], source: GrabSource? = nil) {
+        self.name = name
+        self.values = values
+        self.source = source
+    }
+
+    public static func observable(
+        _ name: String,
+        values: [String: GrabJSONValue],
+        fileID: StaticString = #fileID,
+        line: UInt = #line,
+        function: StaticString = #function
+    ) -> GrabDataSource {
+        GrabDataSource(
+            name: name,
+            values: values,
+            source: GrabSource(fileID: String(describing: fileID), line: line, function: String(describing: function))
+        )
+    }
+}
+
 public struct GrabAccessibility: Codable, Sendable, Equatable {
     public var identifier: String?
     public var label: String?
@@ -104,11 +130,12 @@ public struct GrabDescriptor: Sendable, Equatable {
     public var accessibility: GrabAccessibility
     public var design: [String: GrabJSONValue]
     public var state: [String: GrabJSONValue]
+    public var dataSources: [GrabDataSource]
     public var content: GrabContent
     public var copy: [String: String]
 
-    public init(id: String, role: GrabRole = .view, component: String? = nil, parentID: String? = nil, source: GrabSource? = nil, accessibility: GrabAccessibility = GrabAccessibility(), design: [String: GrabJSONValue] = [:], state: [String: GrabJSONValue] = [:], content: GrabContent = .omitted, copy: [String: String] = [:]) {
-        self.id = id; self.role = role; self.component = component; self.parentID = parentID; self.source = source; self.accessibility = accessibility; self.design = design; self.state = state; self.content = content; self.copy = copy
+    public init(id: String, role: GrabRole = .view, component: String? = nil, parentID: String? = nil, source: GrabSource? = nil, accessibility: GrabAccessibility = GrabAccessibility(), design: [String: GrabJSONValue] = [:], state: [String: GrabJSONValue] = [:], dataSources: [GrabDataSource] = [], content: GrabContent = .omitted, copy: [String: String] = [:]) {
+        self.id = id; self.role = role; self.component = component; self.parentID = parentID; self.source = source; self.accessibility = accessibility; self.design = design; self.state = state; self.dataSources = dataSources; self.content = content; self.copy = copy
     }
 }
 
@@ -124,14 +151,15 @@ public struct GrabNode: Identifiable, Codable, Sendable, Equatable {
     public var source: GrabSource?
     public var design: [String: GrabJSONValue]
     public var state: [String: GrabJSONValue]
+    public var dataSources: [GrabDataSource]
     public var content: GrabContent
     public var copy: [String: String]
     public var isVisible: Bool
     public var renderOrder: Int
     public var updatedAt: Date
 
-    public init(id: String, role: GrabRole, component: String? = nil, parentID: String? = nil, children: [String] = [], path: [String] = [], frame: GrabRect? = nil, accessibility: GrabAccessibility, source: GrabSource? = nil, design: [String: GrabJSONValue] = [:], state: [String: GrabJSONValue] = [:], content: GrabContent = .omitted, copy: [String: String] = [:], isVisible: Bool = true, renderOrder: Int = 0, updatedAt: Date = Date()) {
-        self.id = id; self.role = role; self.component = component; self.parentID = parentID; self.children = children; self.path = path; self.frame = frame; self.accessibility = accessibility; self.source = source; self.design = design; self.state = state; self.content = content; self.copy = copy; self.isVisible = isVisible; self.renderOrder = renderOrder; self.updatedAt = updatedAt
+    public init(id: String, role: GrabRole, component: String? = nil, parentID: String? = nil, children: [String] = [], path: [String] = [], frame: GrabRect? = nil, accessibility: GrabAccessibility, source: GrabSource? = nil, design: [String: GrabJSONValue] = [:], state: [String: GrabJSONValue] = [:], dataSources: [GrabDataSource] = [], content: GrabContent = .omitted, copy: [String: String] = [:], isVisible: Bool = true, renderOrder: Int = 0, updatedAt: Date = Date()) {
+        self.id = id; self.role = role; self.component = component; self.parentID = parentID; self.children = children; self.path = path; self.frame = frame; self.accessibility = accessibility; self.source = source; self.design = design; self.state = state; self.dataSources = dataSources; self.content = content; self.copy = copy; self.isVisible = isVisible; self.renderOrder = renderOrder; self.updatedAt = updatedAt
     }
 }
 

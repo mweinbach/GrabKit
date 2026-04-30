@@ -12,6 +12,7 @@ public extension NSView {
         parentID: String? = nil,
         design: [String: GrabJSONValue] = [:],
         state: [String: GrabJSONValue] = [:],
+        dataSources: [GrabDataSource] = [],
         content: GrabContent = .omitted,
         copy: [String: String] = [:],
         fileID: StaticString = #fileID,
@@ -34,6 +35,7 @@ public extension NSView {
             ),
             design: design,
             state: state,
+            dataSources: dataSources,
             content: content,
             copy: copy
         )

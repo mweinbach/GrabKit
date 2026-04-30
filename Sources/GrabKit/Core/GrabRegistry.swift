@@ -51,6 +51,7 @@ public final class GrabRegistry {
             source: descriptor.source,
             design: descriptor.design,
             state: descriptor.state,
+            dataSources: descriptor.dataSources,
             content: descriptor.content,
             copy: copy,
             isVisible: existing?.isVisible ?? true,

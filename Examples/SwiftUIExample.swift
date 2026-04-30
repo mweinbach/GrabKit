@@ -21,6 +21,12 @@ struct GrabKitSwiftUIExample: View {
                 accessibilityLabel: "Pay now",
                 design: ["token": "button.primary"],
                 state: ["isLoading": GrabJSONValue.from(isLoading)],
+                dataSources: [
+                    .observable(
+                        "GrabKitSwiftUIExample",
+                        values: ["isLoading": GrabJSONValue.from(isLoading)]
+                    )
+                ],
                 content: .safeText(isLoading ? "Processing…" : "Pay now")
             )
         }

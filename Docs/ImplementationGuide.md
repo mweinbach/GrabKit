@@ -162,10 +162,37 @@ ForEach(products) { product in
         .grabContainer(
             "product.\(product.id).row",
             component: "ProductRow",
+            parentID: "product.list",
             state: ["isAvailable": GrabJSONValue.from(product.isAvailable)]
         )
 }
 ```
+
+For card-in-card screens, keep the parent chain explicit with `parentID`, then
+add observable/model snapshots where the component already has the data:
+
+```swift
+RecoveryCard(day: store.currentDay)
+    .grabContainer(
+        "dashboard.recoveryCard",
+        component: "RecoveryCard",
+        parentID: "screen.dashboard",
+        dataSources: [
+            .observable(
+                "DashboardStore",
+                values: [
+                    "currentDay": GrabJSONValue.from(store.currentDay.name),
+                    "nextWorkout": GrabJSONValue.from(store.nextWorkout.name)
+                ]
+            )
+        ]
+    )
+```
+
+GrabKit records the file and line for `.observable(...)`, so copied prompts show
+where the exported data came from. It still does not scrape arbitrary
+`@Observable` or `@State` values automatically; pass the values that are safe
+and useful for debugging.
 
 ## Annotate one-off important UI
 

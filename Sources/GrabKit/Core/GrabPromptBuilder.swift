@@ -2,6 +2,10 @@ import Foundation
 
 enum GrabPromptBuilder {
     static func prompt(for node: GrabNode, comment: String) -> String {
+        prompt(for: node, in: nil, comment: comment)
+    }
+
+    static func prompt(for node: GrabNode, in snapshot: GrabSnapshot?, comment: String) -> String {
         var lines: [String] = [
             "# GrabKit UI Fix Request",
             "",
@@ -27,7 +31,9 @@ enum GrabPromptBuilder {
 
         appendAccessibility(node.accessibility, to: &lines)
         appendContent(node.content, to: &lines)
+        appendNestedContext(for: node, in: snapshot, to: &lines)
         appendJSONSection(title: "State", value: node.state, to: &lines)
+        appendDataSources(node.dataSources, to: &lines)
         appendJSONSection(title: "Design", value: node.design, to: &lines)
 
         lines += [
@@ -65,6 +71,37 @@ enum GrabPromptBuilder {
         lines.append("- Accessibility: \(parts.joined(separator: "; "))")
     }
 
+    private static func appendNestedContext(for node: GrabNode, in snapshot: GrabSnapshot?, to lines: inout [String]) {
+        guard let snapshot else { return }
+        let ancestors = node.path.dropLast().compactMap { id in snapshot.nodes.first { $0.id == id } }
+        let children = node.children.compactMap { id in snapshot.nodes.first { $0.id == id } }
+        guard !ancestors.isEmpty || !children.isEmpty else { return }
+
+        lines += ["", "## Nested UI Context"]
+        if !ancestors.isEmpty {
+            lines.append("- Ancestors: \(ancestors.map(contextLabel).joined(separator: " > "))")
+        }
+        if !children.isEmpty {
+            lines.append("- Direct Children: \(children.map(contextLabel).joined(separator: ", "))")
+        }
+    }
+
+    private static func appendDataSources(_ dataSources: [GrabDataSource], to lines: inout [String]) {
+        guard !dataSources.isEmpty else { return }
+        lines += ["", "## Observable Data"]
+        for dataSource in dataSources {
+            lines.append("### \(dataSource.name)")
+            if let source = dataSource.source {
+                lines.append("- Source: \(source.fileID):\(source.line) in \(source.function)")
+            }
+            lines += [
+                "```json",
+                jsonString(dataSource.values),
+                "```"
+            ]
+        }
+    }
+
     private static func appendContent(_ content: GrabContent, to lines: inout [String]) {
         switch content {
         case .omitted:
@@ -80,6 +117,13 @@ enum GrabPromptBuilder {
         case .value(let value):
             lines.append("- Content: \(jsonString(value))")
         }
+    }
+
+    private static func contextLabel(_ node: GrabNode) -> String {
+        if let component = node.component, !component.isEmpty {
+            return "\(component) (\(node.id))"
+        }
+        return node.id
     }
 
     private static func appendJSONSection(title: String, value: [String: GrabJSONValue], to lines: inout [String]) {

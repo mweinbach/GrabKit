@@ -18,6 +18,7 @@ public extension View {
         isEnabled: Bool? = nil,
         design: [String: GrabJSONValue] = [:],
         state: [String: GrabJSONValue] = [:],
+        dataSources: [GrabDataSource] = [],
         content: GrabContent = .omitted,
         copy: [String: String] = [:],
         fileID: StaticString = #fileID,
@@ -40,6 +41,7 @@ public extension View {
             ),
             design: design,
             state: state,
+            dataSources: dataSources,
             content: content,
             copy: copy
         )
@@ -53,6 +55,7 @@ public extension View {
         parentID: String? = nil,
         design: [String: GrabJSONValue] = [:],
         state: [String: GrabJSONValue] = [:],
+        dataSources: [GrabDataSource] = [],
         fileID: StaticString = #fileID,
         line: UInt = #line,
         function: StaticString = #function
@@ -64,6 +67,7 @@ public extension View {
             parentID: parentID,
             design: design,
             state: state,
+            dataSources: dataSources,
             fileID: fileID,
             line: line,
             function: function

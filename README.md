@@ -75,6 +75,12 @@ struct CheckoutScreen: View {
                 component: "PrimaryButton",
                 accessibilityLabel: "Pay now",
                 state: ["isLoading": GrabJSONValue.from(isLoading)],
+                dataSources: [
+                    .observable(
+                        "CheckoutView",
+                        values: ["isLoading": GrabJSONValue.from(isLoading)]
+                    )
+                ],
                 design: ["token": "button.primary"],
                 content: .safeText("Pay now")
             )
@@ -121,6 +127,30 @@ The selected element panel includes quick copy buttons and a `What should change
 here?` field. Drag the panel out of the way when it covers UI you want to
 select. Use `Copy Prompt` to copy a readable Markdown prompt containing your
 comment plus the selected node's metadata and full JSON.
+
+For nested cards, annotate each reusable card or component with a stable ID and
+`parentID`. When multiple annotated nodes overlap at the click point, the
+selection panel shows the stack so you can switch between the inner element and
+its parent cards. Attach observable or model values with `dataSources`; each
+`.observable(...)` records the file and line where the data snapshot was added.
+
+```swift
+RecoveryCard(day: store.currentDay)
+    .grabContainer(
+        "dashboard.recoveryCard",
+        component: "RecoveryCard",
+        parentID: "screen.dashboard",
+        dataSources: [
+            .observable(
+                "DashboardStore",
+                values: [
+                    "currentDay": GrabJSONValue.from(store.currentDay.name),
+                    "nextWorkout": GrabJSONValue.from(store.nextWorkout.name)
+                ]
+            )
+        ]
+    )
+```
 
 ## Query From The Development Machine
 
