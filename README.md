@@ -152,6 +152,55 @@ RecoveryCard(day: store.currentDay)
     )
 ```
 
+## Agent Prompt For Deep App Coverage
+
+Use this prompt when asking a coding agent to add GrabKit coverage to an app:
+
+```text
+Add deep GrabKit instrumentation across this app so the inspector can select
+real product UI, nested cards/components, and useful state instead of only the
+top-level screen.
+
+Requirements:
+- Install `.grabRoot(...)` once near the app shell/root scene, behind the
+  app's existing debug/internal build gate. Do not enable GrabKit in production.
+- If this is a macOS SwiftUI app, add `.commands { GrabCommands() }`.
+- Do not annotate every call site blindly. First identify reusable components
+  such as cards, rows, buttons, tabs, form fields, empty states, sheets, and
+  navigation surfaces, then add `.grab(...)` or `.grabContainer(...)` inside
+  those components so coverage comes from the design-system/component layer.
+- Add screen and route containers with stable IDs like `screen.dashboard`,
+  then use `parentID` on nested cards/rows/controls so copied prompts show a
+  useful hierarchy.
+- Use stable product IDs, not layout names or indexes. For repeated data, put
+  the domain identifier in the GrabKit ID, for example
+  `workout.\(workout.id).row`.
+- Attach safe observable/model data with `dataSources: [.observable(...)]`.
+  Include only values that help debug the UI, such as selected IDs, dates,
+  loading/empty/error state, feature flags, computed labels, and model names.
+  Do not export secrets, tokens, private user content, or PII unless it is
+  explicitly safe and redacted where needed.
+- Add `state`, `design`, `accessibilityLabel`, and `content` where they make
+  the selected node more useful. Use `.safeText(...)` only for safe visible
+  copy; otherwise use `.redacted(reason:)` or omit content.
+- For UIKit/AppKit views, call `grab(...)` on the view and make sure moved or
+  reused views refresh frames after layout with `grabRefreshFrame()`.
+- Keep the implementation simple. Do not add new configuration systems,
+  environment variable switches, generated files, or broad abstractions unless
+  the app already has a matching pattern.
+
+Acceptance criteria:
+- Toggling GrabKit shows selectable nodes for screens, nested cards, rows,
+  controls, tab items, and key text/content areas.
+- Selecting inside nested UI lets the panel switch between the inner element
+  and parent cards via the candidate stack.
+- Copy Prompt includes the selected element, parent hierarchy, source location,
+  safe state, observable data sources, and relevant design/accessibility data.
+- `swift build` and the app's test suite pass. If the app uses XcodeGen or
+  another project generator, regenerate before building.
+- Update docs or examples that show the app's internal GrabKit integration.
+```
+
 ## Query From The Development Machine
 
 The HTTP bridge is off by default. For same-Mac macOS apps and iOS Simulator
