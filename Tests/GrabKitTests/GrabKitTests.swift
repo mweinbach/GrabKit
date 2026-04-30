@@ -38,6 +38,74 @@ final class GrabKitTests: XCTestCase {
         }
     }
 
+    func testSelectionPrefersOverlayingNodeOverSmallerUnderlyingNode() async throws {
+        await MainActor.run {
+            let registry = GrabRegistry()
+
+            registry.upsert(GrabDescriptor(id: "screen.dashboard", role: .container))
+            registry.updateFrame(id: "screen.dashboard", frame: GrabRect(x: 0, y: 0, width: 390, height: 844))
+
+            registry.upsert(
+                GrabDescriptor(
+                    id: "screen.dashboard.settingsButton",
+                    role: .button,
+                    parentID: "screen.dashboard"
+                )
+            )
+            registry.updateFrame(
+                id: "screen.dashboard.settingsButton",
+                frame: GrabRect(x: 320, y: 70, width: 44, height: 44)
+            )
+
+            registry.upsert(
+                GrabDescriptor(
+                    id: "screen.dashboard.recoveryBadge",
+                    role: .text,
+                    parentID: "screen.dashboard"
+                )
+            )
+            registry.updateFrame(
+                id: "screen.dashboard.recoveryBadge",
+                frame: GrabRect(x: 52, y: 160, width: 70, height: 24)
+            )
+
+            registry.upsert(
+                GrabDescriptor(
+                    id: "sheet.settings",
+                    role: .container,
+                    component: "SettingsView"
+                )
+            )
+            registry.updateFrame(
+                id: "sheet.settings",
+                frame: GrabRect(x: 24, y: 120, width: 342, height: 620)
+            )
+
+            registry.upsert(
+                GrabDescriptor(
+                    id: "sheet.settings.doneButton",
+                    role: .button,
+                    parentID: "sheet.settings"
+                )
+            )
+            registry.updateFrame(
+                id: "sheet.settings.doneButton",
+                frame: GrabRect(x: 44, y: 154, width: 92, height: 50)
+            )
+
+            let selection = registry.select(point: GrabPoint(x: 60, y: 170))
+
+            XCTAssertEqual(selection.selectedID, "sheet.settings.doneButton")
+            XCTAssertEqual(selection.candidateIDs.prefix(3), [
+                "sheet.settings.doneButton",
+                "sheet.settings",
+                "screen.dashboard.recoveryBadge"
+            ])
+            XCTAssertEqual(selection.candidateIDs.last, "screen.dashboard")
+            XCTAssertFalse(selection.candidateIDs.contains("screen.dashboard.settingsButton"))
+        }
+    }
+
     func testSnapshotJSONIncludesMetadata() async throws {
         let json = await MainActor.run { () -> String in
             let registry = GrabRegistry()

@@ -220,11 +220,14 @@ public final class GrabRegistry {
     }
 
     private func selectionSort(lhs: GrabNode, rhs: GrabNode) -> Bool {
+        // Prefer the most recently registered visible node first so overlaying
+        // sheets/popovers beat obscured content underneath them.
+        if lhs.renderOrder != rhs.renderOrder { return lhs.renderOrder > rhs.renderOrder }
+        if lhs.path.count != rhs.path.count { return lhs.path.count > rhs.path.count }
         let leftArea = lhs.frame?.area ?? Double.greatestFiniteMagnitude
         let rightArea = rhs.frame?.area ?? Double.greatestFiniteMagnitude
         if abs(leftArea - rightArea) > 1.0 { return leftArea < rightArea }
-        if lhs.renderOrder == rhs.renderOrder { return lhs.id < rhs.id }
-        return lhs.renderOrder > rhs.renderOrder
+        return lhs.id < rhs.id
     }
 
     private func emit() {
