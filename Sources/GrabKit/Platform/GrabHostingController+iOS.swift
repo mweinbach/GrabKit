@@ -11,6 +11,12 @@ open class GrabHostingController<Content: View>: UIHostingController<Content> {
                 modifierFlags: [.command, .shift],
                 action: #selector(toggleGrabInspector),
                 discoverabilityTitle: "Toggle GrabKit Inspector"
+            ),
+            UIKeyCommand(
+                input: "c",
+                modifierFlags: [.command, .shift],
+                action: #selector(clearGrabSelection),
+                discoverabilityTitle: "Clear GrabKit Selection"
             )
         ]
     }
@@ -23,6 +29,10 @@ open class GrabHostingController<Content: View>: UIHostingController<Content> {
 
     @objc private func toggleGrabInspector() {
         Task { @MainActor in _ = GrabRegistry.shared.toggleInspecting() }
+    }
+
+    @objc private func clearGrabSelection() {
+        Task { @MainActor in GrabRegistry.shared.clearSelection() }
     }
 }
 #endif

@@ -2,7 +2,7 @@
 import SwiftUI
 import UIKit
 
-/// Hidden UIKit bridge that enables shake and Command-Shift-D toggles in SwiftUI apps.
+/// Hidden UIKit bridge that enables shake and hardware keyboard shortcuts in SwiftUI apps.
 public struct GrabInputBridge: UIViewControllerRepresentable {
     public init() {}
 
@@ -25,6 +25,12 @@ public final class GrabInputViewController: UIViewController {
                 modifierFlags: [.command, .shift],
                 action: #selector(toggleGrabInspector),
                 discoverabilityTitle: "Toggle GrabKit Inspector"
+            ),
+            UIKeyCommand(
+                input: "c",
+                modifierFlags: [.command, .shift],
+                action: #selector(clearGrabSelection),
+                discoverabilityTitle: "Clear GrabKit Selection"
             )
         ]
     }
@@ -46,6 +52,10 @@ public final class GrabInputViewController: UIViewController {
 
     @objc private func toggleGrabInspector() {
         Task { @MainActor in _ = GrabRegistry.shared.toggleInspecting() }
+    }
+
+    @objc private func clearGrabSelection() {
+        Task { @MainActor in GrabRegistry.shared.clearSelection() }
     }
 }
 #endif

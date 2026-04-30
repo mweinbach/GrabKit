@@ -113,13 +113,14 @@ Toggle inspect mode, tap or click a highlighted element, then copy the payload
 you need from the selection panel.
 
 - iOS/iPadOS: shake gesture through `GrabInputBridge`.
-- iOS/iPadOS with hardware keyboard or Simulator: Command-Shift-D.
-- macOS SwiftUI: add `.commands { GrabCommands() }` and use Command-Shift-D.
+- iOS/iPadOS with hardware keyboard or Simulator: Command-Shift-D toggles inspect mode; Command-Shift-C clears the current selection.
+- macOS SwiftUI: add `.commands { GrabCommands() }`; Command-Shift-D toggles inspect mode and Command-Shift-C clears the current selection.
 - Programmatic: `GrabRegistry.shared.toggleInspecting()` on the main actor.
 
 The selected element panel includes quick copy buttons and a `What should change
-here?` field. Use `Copy Prompt` to copy a readable Markdown prompt containing
-your comment plus the selected node's metadata and full JSON.
+here?` field. Drag the panel out of the way when it covers UI you want to
+select. Use `Copy Prompt` to copy a readable Markdown prompt containing your
+comment plus the selected node's metadata and full JSON.
 
 ## Query From The Development Machine
 

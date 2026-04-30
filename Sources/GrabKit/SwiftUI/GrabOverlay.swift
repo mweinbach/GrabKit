@@ -22,6 +22,8 @@ private final class GrabOverlayModel: ObservableObject {
 
 public struct GrabOverlay: View {
     @StateObject private var model = GrabOverlayModel()
+    @State private var selectionPanelOffset: CGSize = .zero
+    @GestureState private var selectionPanelDrag: CGSize = .zero
 
     public init() {}
 
@@ -29,7 +31,19 @@ public struct GrabOverlay: View {
         GeometryReader { geometry in
             if model.snapshot.isInspecting {
                 ZStack(alignment: .topLeading) {
-                    Color.black.opacity(0.10).ignoresSafeArea()
+                    Color.black.opacity(0.10)
+                        .ignoresSafeArea()
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 0).onEnded { value in
+                                let rootOrigin = geometry.frame(in: .global).origin
+                                let point = GrabPoint(
+                                    x: Double(value.location.x + rootOrigin.x),
+                                    y: Double(value.location.y + rootOrigin.y)
+                                )
+                                Task { @MainActor in _ = GrabRegistry.shared.select(point: point) }
+                            }
+                        )
 
                     ForEach(visibleNodes) { node in
                         if let frame = node.frame {
@@ -41,6 +55,7 @@ public struct GrabOverlay: View {
                             )
                         }
                     }
+                    .allowsHitTesting(false)
 
                     GrabStatusPill(snapshot: model.snapshot)
                         .padding(12)
@@ -49,23 +64,28 @@ public struct GrabOverlay: View {
                         GrabSelectionPanel(node: selectedNode)
                             .id(selectedNode.id)
                             .padding(12)
+                            .offset(
+                                x: selectionPanelOffset.width + selectionPanelDrag.width,
+                                y: selectionPanelOffset.height + selectionPanelDrag.height
+                            )
+                            .simultaneousGesture(selectionPanelDragGesture)
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                     }
                 }
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 0).onEnded { value in
-                        let rootOrigin = geometry.frame(in: .global).origin
-                        let point = GrabPoint(
-                            x: Double(value.location.x + rootOrigin.x),
-                            y: Double(value.location.y + rootOrigin.y)
-                        )
-                        Task { @MainActor in _ = GrabRegistry.shared.select(point: point) }
-                    }
-                )
             }
         }
         .allowsHitTesting(model.snapshot.isInspecting)
+    }
+
+    private var selectionPanelDragGesture: some Gesture {
+        DragGesture(minimumDistance: 4)
+            .updating($selectionPanelDrag) { value, state, _ in
+                state = value.translation
+            }
+            .onEnded { value in
+                selectionPanelOffset.width += value.translation.width
+                selectionPanelOffset.height += value.translation.height
+            }
     }
 
     private var visibleNodes: [GrabNode] {

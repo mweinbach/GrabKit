@@ -14,6 +14,11 @@ public struct GrabCommands: Commands {
             }
             .keyboardShortcut("d", modifiers: [.command, .shift])
 
+            Button("Clear GrabKit Selection") {
+                Task { @MainActor in GrabRegistry.shared.clearSelection() }
+            }
+            .keyboardShortcut("c", modifiers: [.command, .shift])
+
             Button("Copy GrabKit Snapshot JSON") {
                 Task { @MainActor in
                     _ = GrabClipboard.copy(GrabRegistry.shared.snapshotJSONString())

@@ -17,6 +17,27 @@ final class GrabKitTests: XCTestCase {
         }
     }
 
+    func testClearSelectionClearsSelectedIDAndEmitsSnapshot() async throws {
+        await MainActor.run {
+            let registry = GrabRegistry()
+            var snapshots: [GrabSnapshot] = []
+            let token = registry.addListener { snapshots.append($0) }
+
+            registry.upsert(GrabDescriptor(id: "checkout.payButton", role: .button))
+            registry.select(id: "checkout.payButton")
+            XCTAssertEqual(registry.snapshot().selectedID, "checkout.payButton")
+
+            let snapshotCountBeforeClear = snapshots.count
+            registry.clearSelection()
+
+            XCTAssertNil(registry.snapshot().selectedID)
+            XCTAssertNil(snapshots.last?.selectedID)
+            XCTAssertGreaterThan(snapshots.count, snapshotCountBeforeClear)
+
+            registry.removeListener(token)
+        }
+    }
+
     func testSnapshotJSONIncludesMetadata() async throws {
         let json = await MainActor.run { () -> String in
             let registry = GrabRegistry()
