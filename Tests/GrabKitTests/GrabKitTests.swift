@@ -50,6 +50,79 @@ final class GrabKitTests: XCTestCase {
         XCTAssertEqual(value, decoded)
     }
 
+    func testPromptIncludesCommentAndSelectedNodeID() {
+        let node = GrabNode(
+            id: "checkout.payButton",
+            role: .button,
+            component: "PrimaryButton",
+            accessibility: GrabAccessibility(identifier: "checkout.payButton"),
+            updatedAt: Date(timeIntervalSince1970: 0)
+        )
+
+        let prompt = GrabPromptBuilder.prompt(for: node, comment: "Make this button less visually heavy.")
+
+        XCTAssertTrue(prompt.contains("Make this button less visually heavy."))
+        XCTAssertTrue(prompt.contains("- ID: checkout.payButton"))
+        XCTAssertTrue(prompt.contains("- Role: button"))
+        XCTAssertTrue(prompt.contains("- Component: PrimaryButton"))
+        XCTAssertTrue(prompt.contains("\"id\" : \"checkout.payButton\""))
+    }
+
+    func testPromptIncludesAvailableMetadata() {
+        let node = GrabNode(
+            id: "checkout.payButton",
+            role: .button,
+            component: "PrimaryButton",
+            parentID: "checkout.root",
+            children: [],
+            path: ["checkout.root", "checkout.payButton"],
+            frame: GrabRect(x: 20, y: 500, width: 260, height: 52),
+            accessibility: GrabAccessibility(
+                identifier: "checkout.payButton",
+                label: "Pay now",
+                value: "Ready",
+                hint: "Submits checkout",
+                traits: ["button"],
+                isEnabled: true
+            ),
+            source: GrabSource(fileID: "Demo/CheckoutView.swift", line: 42, function: "body"),
+            design: ["token": "button.primary"],
+            state: ["isLoading": false],
+            content: .safeText("Pay now"),
+            updatedAt: Date(timeIntervalSince1970: 0)
+        )
+
+        let prompt = GrabPromptBuilder.prompt(for: node, comment: "Fix the spacing.")
+
+        XCTAssertTrue(prompt.contains("- Parent ID: checkout.root"))
+        XCTAssertTrue(prompt.contains("- Path: checkout.root > checkout.payButton"))
+        XCTAssertTrue(prompt.contains("- Frame: x 20, y 500, width 260, height 52"))
+        XCTAssertTrue(prompt.contains("- Source: Demo/CheckoutView.swift:42 in body"))
+        XCTAssertTrue(prompt.contains("identifier checkout.payButton"))
+        XCTAssertTrue(prompt.contains("label Pay now"))
+        XCTAssertTrue(prompt.contains("enabled true"))
+        XCTAssertTrue(prompt.contains("- Content: Pay now"))
+        XCTAssertTrue(prompt.contains("## State"))
+        XCTAssertTrue(prompt.contains("\"isLoading\" : false"))
+        XCTAssertTrue(prompt.contains("## Design"))
+        XCTAssertTrue(prompt.contains("\"token\" : \"button.primary\""))
+    }
+
+    func testPromptWithEmptyCommentStillIncludesContext() {
+        let node = GrabNode(
+            id: "settings.notificationsToggle",
+            role: .toggle,
+            accessibility: GrabAccessibility(identifier: "settings.notificationsToggle"),
+            updatedAt: Date(timeIntervalSince1970: 0)
+        )
+
+        let prompt = GrabPromptBuilder.prompt(for: node, comment: "  \n ")
+
+        XCTAssertTrue(prompt.contains("(No comment provided.)"))
+        XCTAssertTrue(prompt.contains("- ID: settings.notificationsToggle"))
+        XCTAssertTrue(prompt.contains("## Full Node JSON"))
+    }
+
     func testTransportDefaultsToDisabled() {
         let mode = GrabTransportMode.disabled
         XCTAssertFalse(mode.isEnabled)

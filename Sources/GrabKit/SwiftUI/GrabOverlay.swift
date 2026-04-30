@@ -47,6 +47,7 @@ public struct GrabOverlay: View {
 
                     if let selectedNode {
                         GrabSelectionPanel(node: selectedNode)
+                            .id(selectedNode.id)
                             .padding(12)
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                     }
@@ -166,6 +167,7 @@ private struct GrabStatusPill: View {
 
 private struct GrabSelectionPanel: View {
     let node: GrabNode
+    @State private var promptComment = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -197,6 +199,17 @@ private struct GrabSelectionPanel: View {
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
+            }
+
+            HStack(spacing: 8) {
+                TextField("What should change here?", text: $promptComment)
+                    .textFieldStyle(.roundedBorder)
+                Button("Copy Prompt") {
+                    _ = GrabClipboard.copy(
+                        GrabPromptBuilder.prompt(for: node, comment: promptComment)
+                    )
+                }
+                .buttonStyle(.borderedProminent)
             }
 
             HStack {
