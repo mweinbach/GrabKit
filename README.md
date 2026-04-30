@@ -1,34 +1,40 @@
-# GrabKit Starter
+<p align="center">
+  <img src="Docs/Assets/grabkit-icon.png" width="168" alt="GrabKit icon">
+</p>
 
-GrabKit is a SwiftPM starter package for building a **debug-only UI element grabber** for SwiftUI, UIKit, and AppKit apps.
+<h1 align="center">GrabKit</h1>
 
-It is meant to feel like a native-app version of React element picking:
+<p align="center">
+  Native UI element grabbing for SwiftUI, UIKit, and AppKit debug builds.
+</p>
 
-- add `.grabRoot()` near your app root
-- annotate important UI with `.grab("stable.id")`
-- toggle inspect mode with shake or Command-Shift-D
-- tap/click highlighted elements
-- copy element ID, JSON, XCTest selector, source location, frame, accessibility metadata, state, and design metadata
-- optionally query the graph over a local debug HTTP bridge
+<p align="center">
+  <code>.grabRoot()</code> · <code>.grab("stable.id")</code> · inspect · copy · fix
+</p>
 
-This is a starting point, not a finished internal platform. The skeleton deliberately keeps the implementation small and hackable.
+GrabKit is a small SwiftPM package for adding React-style element picking to
+native Apple apps. Annotate meaningful UI, toggle inspect mode, select an
+element, then copy the exact context an engineer or coding agent needs: stable
+ID, JSON, XCTest selector, source location, frame, accessibility metadata, app
+state, design metadata, and an optional fix request comment.
 
-## Package contents
+It is intentionally simple. GrabKit is a debug/internal-build helper, not a
+production analytics SDK or private SwiftUI tree scraper.
 
-```text
-Sources/GrabKit/Core       Registry, node model, JSON metadata, selection logic
-Sources/GrabKit/SwiftUI    SwiftUI modifiers, overlay, frame collection
-Sources/GrabKit/Platform   iOS/macOS toggles, clipboard, UIKit/AppKit helpers
-Sources/GrabKit/Transport  Tiny debug HTTP server starter
-Docs/                      Architecture, integration, remote, security, roadmap
-Examples/                  SwiftUI/UIKit/AppKit usage snippets
-Tools/                     curl CLI and tiny browser viewer
-Tests/                     Core registry tests
-```
+## What It Does
 
-Start with [Docs/ImplementationGuide.md](Docs/ImplementationGuide.md) if you want the easiest way to add GrabKit to an app. In short: install `.grabRoot(...)` once at `ContentView` or your app shell, then annotate reusable components so coverage spreads through the app without touching every screen.
+- Adds a native overlay for picking annotated UI elements.
+- Captures stable IDs, source locations, layout frames, accessibility metadata,
+  content safety labels, app state, and design metadata.
+- Copies individual payloads like ID, JSON, source, and XCTest selectors.
+- Copies an agent-ready fix prompt with a selected element and your comment.
+- Exposes the current UI graph over an optional local debug HTTP bridge.
+- Works across SwiftUI, UIKit, and AppKit with platform-specific code kept small.
 
-## Quick start: SwiftUI
+## Quick Start
+
+Install `.grabRoot(...)` once near your app shell, then annotate reusable
+components or important one-off views.
 
 ```swift
 import SwiftUI
@@ -79,7 +85,7 @@ struct CheckoutScreen: View {
 }
 ```
 
-## Quick start: UIKit
+For UIKit or AppKit, call `grab(...)` directly on the view:
 
 ```swift
 let button = UIButton(type: .system)
@@ -92,7 +98,7 @@ button.grab(
 )
 ```
 
-If the view moves after layout, refresh the frame:
+If a UIKit/AppKit view moves after layout, refresh its frame:
 
 ```swift
 override func layoutSubviews() {
@@ -101,24 +107,31 @@ override func layoutSubviews() {
 }
 ```
 
-## Toggle inspect mode
+## Inspect And Copy
 
-- iOS/iPadOS: shake gesture through `GrabInputBridge`
-- iOS/iPadOS with hardware keyboard/simulator: Command-Shift-D
-- macOS SwiftUI: add `.commands { GrabCommands() }` and use Command-Shift-D
-- Programmatic: `GrabRegistry.shared.toggleInspecting()` on the main actor
+Toggle inspect mode, tap or click a highlighted element, then copy the payload
+you need from the selection panel.
 
-## Query from the development machine
+- iOS/iPadOS: shake gesture through `GrabInputBridge`.
+- iOS/iPadOS with hardware keyboard or Simulator: Command-Shift-D.
+- macOS SwiftUI: add `.commands { GrabCommands() }` and use Command-Shift-D.
+- Programmatic: `GrabRegistry.shared.toggleInspecting()` on the main actor.
 
-The starter includes a small HTTP bridge. It is off by default. For same-Mac
-macOS apps and iOS Simulator work, enable loopback explicitly:
+The selected element panel includes quick copy buttons and a `What should change
+here?` field. Use `Copy Prompt` to copy a readable Markdown prompt containing
+your comment plus the selected node's metadata and full JSON.
+
+## Query From The Development Machine
+
+The HTTP bridge is off by default. For same-Mac macOS apps and iOS Simulator
+work, enable loopback explicitly:
 
 ```swift
 RootView()
     .grabRoot(transport: .loopback(port: 9777))
 ```
 
-Then try:
+Then query or control inspect mode:
 
 ```bash
 curl http://localhost:9777/grab/health
@@ -129,24 +142,21 @@ curl -X POST http://localhost:9777/grab/select-point \
   -d '{"x":100,"y":200}'
 ```
 
-For same-LAN physical devices, local-network sharing must be enabled manually and
-protected with a session token:
+For same-LAN physical devices, local-network sharing must be enabled manually
+and protected with a session token:
 
 ```swift
 RootView()
     .grabRoot(transport: .localNetwork(port: 9777, token: "short-lived-token"))
 ```
 
-Then pass the token with `Authorization: Bearer short-lived-token` or
-`X-GrabKit-Token`. For off-LAN real-device workflows, the recommended next step
-is an **outbound WebSocket broker**: the app connects to your controller, and your
-remote viewer connects to the same session. That avoids inbound firewall,
-local-network, and device-discovery pain.
+Pass the token with `Authorization: Bearer short-lived-token` or
+`X-GrabKit-Token`.
 
-## Optional MCP sidecar
+## Optional MCP Sidecar
 
-GrabKit also includes a macOS-only stdio MCP sidecar that talks to an already
-enabled GrabKit transport:
+GrabKit includes a macOS-only stdio MCP sidecar that talks to an already enabled
+GrabKit transport:
 
 ```bash
 swift run grabkit-mcp --base-url http://127.0.0.1:9777
@@ -157,9 +167,25 @@ The sidecar exposes `grab_health`, `grab_tree`, `grab_selected`,
 `grab_set_mode`, `grab_select_id`, and `grab_select_point`. It does not make the
 app speak MCP and it does not auto-discover devices.
 
-## Important safety rule
+## Package Layout
 
-Do not ship this in production. Compile it out:
+```text
+Sources/GrabKit/Core       Registry, node model, JSON metadata, selection logic
+Sources/GrabKit/SwiftUI    SwiftUI modifiers, overlay, frame collection
+Sources/GrabKit/Platform   iOS/macOS toggles, clipboard, UIKit/AppKit helpers
+Sources/GrabKit/Transport  Tiny debug HTTP server starter
+Docs/                      Architecture, integration, remote, security, roadmap
+Examples/                  SwiftUI/UIKit/AppKit usage snippets
+Tools/                     curl CLI, MCP sidecar, tiny browser viewer
+Tests/                     Core registry and prompt formatting tests
+```
+
+Start with [Docs/ImplementationGuide.md](Docs/ImplementationGuide.md) for the
+recommended integration path.
+
+## Safety
+
+Do not ship GrabKit in production. Compile it out:
 
 ```swift
 #if DEBUG || INTERNAL_BUILD
@@ -167,8 +193,19 @@ import GrabKit
 #endif
 ```
 
-The tool can expose real user content, app state, experiment flags, internal IDs, and source locations. Use `GrabContent.redacted(reason:)` by default for sensitive text.
+GrabKit can expose real user content, app state, experiment flags, internal IDs,
+source locations, and accessibility metadata. Use `GrabContent.redacted(reason:)`
+by default for sensitive text, and only mark content as `.safeText(...)` when it
+is genuinely safe to export or copy.
 
-## Current validation
+## Validation
 
-This starter was validated with `swift test` in this environment. Apple-specific files are conditionally compiled and are intended to be opened/tested in Xcode against iOS/macOS targets.
+Run both before completing code changes:
+
+```bash
+swift build
+swift test
+```
+
+Apple-specific files are conditionally compiled and are intended to be opened or
+tested in Xcode against iOS/macOS targets when needed.
