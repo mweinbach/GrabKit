@@ -75,11 +75,19 @@ public struct GrabOverlay: View {
                             .id(selectedNode.id)
                             .padding(12)
                             .offset(
-                                x: selectionPanelOffset.width + selectionPanelDrag.width,
-                                y: selectionPanelOffset.height + selectionPanelDrag.height
+                                x: clampedPanelOffset(
+                                    width: selectionPanelOffset.width + selectionPanelDrag.width,
+                                    height: selectionPanelOffset.height + selectionPanelDrag.height,
+                                    in: geometry.size
+                                ).width,
+                                y: clampedPanelOffset(
+                                    width: selectionPanelOffset.width + selectionPanelDrag.width,
+                                    height: selectionPanelOffset.height + selectionPanelDrag.height,
+                                    in: geometry.size
+                                ).height
                             )
                             .simultaneousGesture(selectionPanelDragGesture)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     }
                 }
             }
@@ -89,8 +97,14 @@ public struct GrabOverlay: View {
                 selectionCandidateIDs = []
                 return
             }
+            selectionPanelOffset = defaultPanelOffset
             if !selectionCandidateIDs.contains(selectedID) {
                 selectionCandidateIDs = [selectedID]
+            }
+        }
+        .onChange(of: model.snapshot.isInspecting) { isInspecting in
+            if isInspecting {
+                selectionPanelOffset = defaultPanelOffset
             }
         }
         .allowsHitTesting(model.snapshot.isInspecting)
@@ -102,9 +116,23 @@ public struct GrabOverlay: View {
                 state = value.translation
             }
             .onEnded { value in
-                selectionPanelOffset.width += value.translation.width
-                selectionPanelOffset.height += value.translation.height
+                selectionPanelOffset = CGSize(
+                    width: selectionPanelOffset.width + value.translation.width,
+                    height: selectionPanelOffset.height + value.translation.height
+                )
             }
+    }
+
+    private var defaultPanelOffset: CGSize {
+        CGSize(width: 0, height: 48)
+    }
+
+    private func clampedPanelOffset(width: CGFloat, height: CGFloat, in size: CGSize) -> CGSize {
+        let panelWidth: CGFloat = min(460, size.width - 24)
+        let panelHeight: CGFloat = min(260, size.height - 24)
+        let clampedX = min(max(width, 0), max(0, size.width - panelWidth - 24))
+        let clampedY = min(max(height, 0), max(0, size.height - panelHeight - 24))
+        return CGSize(width: clampedX, height: clampedY)
     }
 
     private var visibleNodes: [GrabNode] {
@@ -138,6 +166,8 @@ private struct GrabNodeBox: View {
                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                 .foregroundStyle(Color.white)
                 .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: 220, alignment: .leading)
                 .padding(.horizontal, 4)
                 .padding(.vertical, 2)
                 .background((isSelected ? Color.orange : Color.blue).opacity(0.90))
