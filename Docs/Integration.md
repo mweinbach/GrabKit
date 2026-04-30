@@ -11,7 +11,7 @@ struct MyApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
-                .grabRoot(startLocalServer: true)
+                .grabRoot(transport: .loopback())
         }
         #if os(macOS)
         .commands { GrabCommands() }
@@ -109,7 +109,7 @@ extension View {
     @ViewBuilder
     func internalGrabRoot() -> some View {
         #if DEBUG || INTERNAL_BUILD
-        self.grabRoot(startLocalServer: true)
+        self.grabRoot(transport: .loopback())
         #else
         self
         #endif
@@ -119,7 +119,7 @@ extension View {
 
 ## Info.plist for local networking
 
-If you expose the debug server on iOS/iPadOS to other devices on the LAN, expect local-network privacy requirements. Add internal-build-only Info.plist entries such as:
+The debug server is off by default. Use `.loopback(port:)` for same-Mac macOS and iOS Simulator workflows. If you manually expose the debug server on iOS/iPadOS to other devices on the LAN with `.localNetwork(port:token:)`, expect local-network privacy requirements. Add internal-build-only Info.plist entries such as:
 
 ```xml
 <key>NSLocalNetworkUsageDescription</key>

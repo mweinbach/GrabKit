@@ -146,8 +146,9 @@ public struct GrabSnapshot: Codable, Sendable, Equatable {
     public var generatedAt: Date
     public var isInspecting: Bool
     public var selectedID: String?
+    public var transport: GrabTransportStatus
     public var nodes: [GrabNode]
-    public init(version: String = GrabKit.version, generatedAt: Date = Date(), isInspecting: Bool, selectedID: String?, nodes: [GrabNode]) {
-        self.version = version; self.generatedAt = generatedAt; self.isInspecting = isInspecting; self.selectedID = selectedID; self.nodes = nodes
+    public init(version: String = GrabKit.version, generatedAt: Date = Date(), isInspecting: Bool, selectedID: String?, transport: GrabTransportStatus = GrabDebugServer.shared.status, nodes: [GrabNode]) {
+        self.version = version; self.generatedAt = generatedAt; self.isInspecting = isInspecting; self.selectedID = selectedID; self.transport = transport; self.nodes = nodes
     }
 }

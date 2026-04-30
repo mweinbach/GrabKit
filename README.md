@@ -39,7 +39,7 @@ struct DemoApp: App {
     var body: some Scene {
         WindowGroup {
             CheckoutScreen()
-                .grabRoot(startLocalServer: true)
+                .grabRoot(transport: .loopback())
         }
         #if os(macOS)
         .commands { GrabCommands() }
@@ -108,13 +108,14 @@ override func layoutSubviews() {
 - macOS SwiftUI: add `.commands { GrabCommands() }` and use Command-Shift-D
 - Programmatic: `GrabRegistry.shared.toggleInspecting()` on the main actor
 
-## Query from another machine
+## Query from the development machine
 
-The starter includes a small local HTTP bridge. In SwiftUI, start it with:
+The starter includes a small HTTP bridge. It is off by default. For same-Mac
+macOS apps and iOS Simulator work, enable loopback explicitly:
 
 ```swift
 RootView()
-    .grabRoot(startLocalServer: true, port: 9777)
+    .grabRoot(transport: .loopback(port: 9777))
 ```
 
 Then try:
@@ -128,7 +129,33 @@ curl -X POST http://localhost:9777/grab/select-point \
   -d '{"x":100,"y":200}'
 ```
 
-For real-device workflows, the recommended next step is an **outbound WebSocket broker**: the app connects to your controller, and your remote viewer connects to the same session. That avoids inbound firewall, local-network, and device-discovery pain.
+For same-LAN physical devices, local-network sharing must be enabled manually and
+protected with a session token:
+
+```swift
+RootView()
+    .grabRoot(transport: .localNetwork(port: 9777, token: "short-lived-token"))
+```
+
+Then pass the token with `Authorization: Bearer short-lived-token` or
+`X-GrabKit-Token`. For off-LAN real-device workflows, the recommended next step
+is an **outbound WebSocket broker**: the app connects to your controller, and your
+remote viewer connects to the same session. That avoids inbound firewall,
+local-network, and device-discovery pain.
+
+## Optional MCP sidecar
+
+GrabKit also includes a macOS-only stdio MCP sidecar that talks to an already
+enabled GrabKit transport:
+
+```bash
+swift run grabkit-mcp --base-url http://127.0.0.1:9777
+GRABKIT_TOKEN=short-lived-token swift run grabkit-mcp --base-url http://iphone.local:9777
+```
+
+The sidecar exposes `grab_health`, `grab_tree`, `grab_selected`,
+`grab_set_mode`, `grab_select_id`, and `grab_select_point`. It does not make the
+app speak MCP and it does not auto-discover devices.
 
 ## Important safety rule
 

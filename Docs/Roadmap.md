@@ -25,6 +25,7 @@
 - outbound WebSocket broker
 - browser-based viewer
 - session tokens
+- macOS MCP sidecar for local agent tools
 - live event stream
 - screenshot stream
 - remote flash/select/toggle commands

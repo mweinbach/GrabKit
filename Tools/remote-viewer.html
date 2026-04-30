@@ -17,9 +17,11 @@
   <h1>GrabKit Remote Viewer</h1>
   <div class="row">
     <label>Base URL <input id="base" size="32" value="http://localhost:9777"></label>
+    <label>Token <input id="token" size="24" type="password" autocomplete="off"></label>
     <button onclick="loadTree()">Load tree</button>
     <button onclick="setMode(true)">Inspect on</button>
     <button onclick="setMode(false)">Inspect off</button>
+    <button onclick="stopSharing()">Stop sharing</button>
   </div>
   <div id="nodes"></div>
   <h2>Selected / Response</h2>
@@ -28,8 +30,13 @@
 const out = document.getElementById('out');
 const nodes = document.getElementById('nodes');
 const base = () => document.getElementById('base').value.replace(/\/$/, '');
+const authHeaders = () => {
+  const token = document.getElementById('token').value;
+  return token ? {'Authorization': `Bearer ${token}`} : {};
+};
 const show = value => out.textContent = JSON.stringify(value, null, 2);
 async function api(path, opts = {}) {
+  opts.headers = {...authHeaders(), ...(opts.headers || {})};
   const res = await fetch(base() + path, opts);
   return await res.json();
 }
@@ -51,6 +58,9 @@ async function setMode(enabled) {
   show(await api('/grab/mode', {
     method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({enabled})
   }));
+}
+async function stopSharing() {
+  show(await api('/grab/stop', {method: 'POST'}));
 }
 </script>
 </body>

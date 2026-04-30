@@ -183,6 +183,10 @@ public final class GrabRegistry {
         emit()
     }
 
+    public func refresh() {
+        emit()
+    }
+
     private func rebuildRelationships() {
         let keys = Array(nodesByID.keys)
         for id in keys {

@@ -15,7 +15,7 @@ GrabKit is inherently powerful. Treat it like an internal developer tool that ca
 
 ```swift
 #if DEBUG || INTERNAL_BUILD
-RootView().grabRoot(startLocalServer: true)
+RootView().grabRoot(transport: .loopback())
 #else
 RootView()
 #endif
@@ -45,7 +45,16 @@ For local HTTP:
 - display active status in overlay
 - require a random session token
 - prefer loopback for simulator work
+- use `.localNetwork(port:token:)` only as a manual share mode
 - avoid enabling in shared QA builds without controls
+- stop local-network sharing when the debugging session is done
+
+For the optional MCP sidecar:
+
+- run it only on macOS as a local stdio process
+- pass the GrabKit base URL and token manually
+- do not mirror tokens into MCP tool schemas or headers
+- keep MCP out of iOS app binaries
 
 For WebSocket broker:
 

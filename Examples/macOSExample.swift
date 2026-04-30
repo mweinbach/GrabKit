@@ -13,7 +13,7 @@ struct GrabKitMacExampleApp: App {
                     .grab("demo.toggleButton", role: .button, component: "SecondaryButton")
             }
             .padding()
-            .grabRoot(startLocalServer: true)
+            .grabRoot(transport: .loopback())
         }
         .commands { GrabCommands() }
     }

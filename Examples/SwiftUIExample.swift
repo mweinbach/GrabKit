@@ -26,7 +26,7 @@ struct GrabKitSwiftUIExample: View {
         }
         .padding()
         .grabContainer("checkout.root", component: "CheckoutScreen")
-        .grabRoot(startLocalServer: true)
+        .grabRoot(transport: .loopback())
     }
 }
 #endif

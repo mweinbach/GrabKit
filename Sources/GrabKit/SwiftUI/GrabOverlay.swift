@@ -124,8 +124,21 @@ private struct GrabStatusPill: View {
         HStack(spacing: 8) {
             Text("GrabKit").fontWeight(.semibold)
             Text("\(snapshot.nodes.count) nodes")
+            if snapshot.transport.isRunning {
+                Text(transportLabel)
+                    .lineLimit(1)
+            }
             if let selectedID = snapshot.selectedID {
                 Text("selected: \(selectedID)").lineLimit(1)
+            }
+            if snapshot.transport.exposure == .localNetwork {
+                Button("Stop Sharing") {
+                    Task { @MainActor in
+                        GrabDebugServer.shared.stop()
+                        GrabRegistry.shared.refresh()
+                    }
+                }
+                .buttonStyle(.bordered)
             }
             Button("Done") { Task { @MainActor in GrabRegistry.shared.setInspecting(false) } }
                 .buttonStyle(.borderedProminent)
@@ -136,6 +149,18 @@ private struct GrabStatusPill: View {
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .shadow(radius: 8)
+    }
+
+    private var transportLabel: String {
+        let port = snapshot.transport.port.map { ":\($0)" } ?? ""
+        switch snapshot.transport.exposure {
+        case .disabled:
+            return "transport off"
+        case .loopback:
+            return "loopback\(port)"
+        case .localNetwork:
+            return "LAN sharing\(port)"
+        }
     }
 }
 

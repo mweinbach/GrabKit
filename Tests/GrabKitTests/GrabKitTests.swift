@@ -49,4 +49,97 @@ final class GrabKitTests: XCTestCase {
         let decoded = try JSONDecoder().decode(GrabJSONValue.self, from: data)
         XCTAssertEqual(value, decoded)
     }
+
+    func testTransportDefaultsToDisabled() {
+        let mode = GrabTransportMode.disabled
+        XCTAssertFalse(mode.isEnabled)
+        XCTAssertNil(mode.port)
+        XCTAssertEqual(mode.exposure, .disabled)
+    }
+
+    func testTransportModesDescribeExposure() {
+        XCTAssertEqual(GrabTransportMode.loopback(port: 9777).port, 9777)
+        XCTAssertEqual(GrabTransportMode.loopback(port: 9777).exposure, .loopback)
+        XCTAssertEqual(GrabTransportMode.localNetwork(port: 9778, token: "session-token").port, 9778)
+        XCTAssertEqual(GrabTransportMode.localNetwork(port: 9778, token: "session-token").exposure, .localNetwork)
+    }
+
+    func testHealthEndpointDoesNotRequireLocalNetworkToken() async throws {
+        #if canImport(Network)
+        let response = await MainActor.run {
+            GrabDebugServer.shared.responseForTesting(
+                method: "GET",
+                path: "/grab/health",
+                mode: .localNetwork(port: 9777, token: "session-token")
+            )
+        }
+
+        XCTAssertEqual(response.statusCode, 200)
+        let object = try JSONSerialization.jsonObject(with: response.body) as? [String: Any]
+        XCTAssertEqual(object?["ok"] as? Bool, true)
+        #endif
+    }
+
+    func testLocalNetworkEndpointsRejectMissingToken() async throws {
+        #if canImport(Network)
+        let response = await MainActor.run {
+            GrabDebugServer.shared.responseForTesting(
+                method: "GET",
+                path: "/grab/tree",
+                mode: .localNetwork(port: 9777, token: "session-token")
+            )
+        }
+
+        XCTAssertEqual(response.statusCode, 401)
+        #endif
+    }
+
+    func testLocalNetworkEndpointsAcceptBearerToken() async throws {
+        #if canImport(Network)
+        let response = await MainActor.run {
+            GrabDebugServer.shared.responseForTesting(
+                method: "GET",
+                path: "/grab/tree",
+                headers: ["Authorization": "Bearer session-token"],
+                mode: .localNetwork(port: 9777, token: "session-token")
+            )
+        }
+
+        XCTAssertEqual(response.statusCode, 200)
+        let object = try JSONSerialization.jsonObject(with: response.body) as? [String: Any]
+        XCTAssertNotNil(object?["nodes"])
+        #endif
+    }
+
+    func testLoopbackServerServesHealth() async throws {
+        #if canImport(Network)
+        let server = GrabDebugServer.shared
+        var selectedPort: UInt16?
+        var lastError: Error?
+
+        for _ in 0..<10 {
+            let port = UInt16.random(in: 30000...55000)
+            do {
+                try server.start(.loopback(port: port))
+                selectedPort = port
+                break
+            } catch {
+                lastError = error
+            }
+        }
+
+        guard let selectedPort else {
+            XCTFail("Failed to start loopback server: \(String(describing: lastError))")
+            return
+        }
+        defer { server.stop() }
+
+        try await Task.sleep(nanoseconds: 100_000_000)
+        let url = URL(string: "http://127.0.0.1:\(selectedPort)/grab/health")!
+        let (data, response) = try await URLSession.shared.data(from: url)
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+        let object = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        XCTAssertEqual(object?["ok"] as? Bool, true)
+        #endif
+    }
 }

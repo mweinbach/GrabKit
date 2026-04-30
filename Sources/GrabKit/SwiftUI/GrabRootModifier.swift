@@ -6,37 +6,45 @@ public extension View {
     func grabRoot(
         enableOverlay: Bool = true,
         enablePlatformToggles: Bool = true,
-        startLocalServer: Bool = false,
-        port: UInt16 = 9777
+        transport: GrabTransportMode = .disabled
     ) -> some View {
         modifier(
             GrabRootModifier(
                 enableOverlay: enableOverlay,
                 enablePlatformToggles: enablePlatformToggles,
-                startLocalServer: startLocalServer,
-                port: port
+                transport: transport
             )
         )
+    }
+
+    @available(*, deprecated, message: "Use grabRoot(transport:) with .disabled, .loopback(port:), or .localNetwork(port:token:).")
+    func grabRoot(startLocalServer: Bool, port: UInt16 = 9777) -> some View {
+        grabRoot(transport: startLocalServer ? .loopback(port: port) : .disabled)
     }
 }
 
 public struct GrabRootModifier: ViewModifier {
     let enableOverlay: Bool
     let enablePlatformToggles: Bool
-    let startLocalServer: Bool
-    let port: UInt16
+    let transport: GrabTransportMode
 
     public func body(content: Content) -> some View {
         content
             .modifier(GrabOverlayInstaller(enabled: enableOverlay))
             .background(GrabPlatformInputBridge(enabled: enablePlatformToggles))
             .onAppear {
-                guard startLocalServer else { return }
-                do { try GrabDebugServer.shared.start(port: port) }
+                guard transport.isEnabled else { return }
+                do {
+                    try GrabDebugServer.shared.start(transport)
+                    GrabRegistry.shared.refresh()
+                }
                 catch { assertionFailure("GrabKit failed to start local server: \(error)") }
             }
             .onDisappear {
-                if startLocalServer { GrabDebugServer.shared.stop() }
+                if transport.isEnabled {
+                    GrabDebugServer.shared.stop()
+                    GrabRegistry.shared.refresh()
+                }
             }
     }
 }

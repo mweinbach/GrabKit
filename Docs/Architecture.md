@@ -18,6 +18,11 @@ GrabRegistry
 Snapshot JSON + overlay + copy actions + local/remote transport
 ```
 
+The transport is explicit and off by default. Loopback mode is for same-Mac
+macOS/iOS Simulator work. Local-network mode is a manual token-protected share
+mode, and the optional MCP integration is a macOS sidecar that calls the app's
+HTTP transport rather than embedding MCP in app binaries.
+
 ## Core concepts
 
 ### GrabDescriptor

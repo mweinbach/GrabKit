@@ -9,11 +9,11 @@ Yes, you can install GrabKit once near the app root:
 ```swift
 WindowGroup {
     ContentView()
-        .grabRoot(startLocalServer: true)
+        .grabRoot()
 }
 ```
 
-That single root install adds the inspect overlay, platform toggles, selection handling, and optional local debug server for everything under `ContentView`.
+That single root install adds the inspect overlay, platform toggles, and selection handling for everything under `ContentView`. The local debug server stays off unless you explicitly pass a transport mode.
 
 What it cannot fully do by itself is infer rich, stable metadata for every SwiftUI element. SwiftUI does not expose a public, complete runtime view tree with component names, source locations, design tokens, app state, or safe content labels. GrabKit gets high-quality results when meaningful UI publishes explicit `.grab(...)` descriptors.
 
@@ -50,7 +50,7 @@ struct DemoApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .grabRoot(startLocalServer: true)
+                .grabRoot(transport: .loopback())
         }
         #if os(macOS)
         .commands { GrabCommands() }
@@ -64,7 +64,7 @@ If your app already has an app shell, router, or root coordinator, putting `.gra
 ```swift
 WindowGroup {
     AppShell()
-        .grabRoot(startLocalServer: true)
+        .grabRoot(transport: .loopback())
 }
 ```
 
@@ -77,7 +77,7 @@ extension View {
     @ViewBuilder
     func debugGrabRoot() -> some View {
         #if DEBUG || INTERNAL_BUILD
-        self.grabRoot(startLocalServer: true)
+        self.grabRoot(transport: .loopback())
         #else
         self
         #endif
@@ -223,7 +223,14 @@ For pure UIKit/AppKit apps, the current package does not install a full automati
 
 ## Use the local debug server
 
-When `startLocalServer` is enabled, query the graph from the development machine:
+The transport is off by default. For same-Mac macOS apps and iOS Simulator sessions, enable loopback explicitly:
+
+```swift
+RootView()
+    .grabRoot(transport: .loopback(port: 9777))
+```
+
+Then query the graph from the development machine:
 
 ```bash
 curl http://localhost:9777/grab/health
@@ -231,5 +238,15 @@ curl http://localhost:9777/grab/tree
 curl -X POST http://localhost:9777/grab/mode -d '{"enabled":true}'
 ```
 
-Only enable network exposure for internal builds. See `Docs/Security.md` before using GrabKit with real user data.
+For same-LAN physical-device sessions, use manual local-network sharing with a short-lived token:
 
+```swift
+RootView()
+    .grabRoot(transport: .localNetwork(port: 9777, token: "short-lived-token"))
+```
+
+```bash
+GRABKIT_TOKEN=short-lived-token Tools/grabctl.sh tree
+```
+
+Only enable network exposure for internal builds. See `Docs/Security.md` before using GrabKit with real user data.
