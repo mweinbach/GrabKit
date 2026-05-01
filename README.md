@@ -221,11 +221,29 @@ Then query or control inspect mode:
 ```bash
 curl http://localhost:9777/grab/health
 curl http://localhost:9777/grab/tree
+curl http://localhost:9777/grab/selected
+curl "http://localhost:9777/grab/prompt?comment=Make%20this%20clearer"
+curl http://localhost:9777/grab/copied
 curl -X POST http://localhost:9777/grab/mode -d '{"enabled":true}'
 curl -X POST http://localhost:9777/grab/select-point \
   -H 'Content-Type: application/json' \
   -d '{"x":100,"y":200}'
 ```
+
+### Simulator Clipboard Note
+
+On iOS Simulator, GrabKit copy buttons write to the simulator device pasteboard.
+That does not always become the Mac host clipboard automatically, so this is
+normal.
+
+Use one of these host-side paths instead:
+
+- Fetch the selected prompt directly:
+  `curl "http://127.0.0.1:9777/grab/prompt?comment=Fix%20this" | jq -r '.prompt' | pbcopy`
+- Fetch the last copied GrabKit string:
+  `curl http://127.0.0.1:9777/grab/copied | jq -r '.value' | pbcopy`
+- Or sync the simulator pasteboard to the host explicitly:
+  `xcrun simctl pbsync <simulator-udid> host`
 
 For same-LAN physical devices, local-network sharing must be enabled manually
 and protected with a session token:

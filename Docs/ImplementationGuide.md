@@ -267,8 +267,16 @@ Then query the graph from the development machine:
 ```bash
 curl http://localhost:9777/grab/health
 curl http://localhost:9777/grab/tree
+curl http://localhost:9777/grab/selected
+curl "http://localhost:9777/grab/prompt?comment=Make%20this%20clearer"
+curl http://localhost:9777/grab/copied
 curl -X POST http://localhost:9777/grab/mode -d '{"enabled":true}'
 ```
+
+On iOS Simulator, GrabKit copy actions populate the simulator pasteboard first.
+If the Mac host clipboard does not update automatically, fetch the prompt or the
+last copied value through loopback and pipe it to `pbcopy`, or use
+`xcrun simctl pbsync <simulator-udid> host`.
 
 For same-LAN physical-device sessions, use manual local-network sharing with a short-lived token:
 

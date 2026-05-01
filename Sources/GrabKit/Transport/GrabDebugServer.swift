@@ -174,6 +174,15 @@ public final class GrabDebugServer: @unchecked Sendable {
         case ("GET", "/grab/selected"):
             if let node = GrabRegistry.shared.selectedNode() { return json(node) }
             return json(SelectedResponse(selectedID: nil))
+        case ("GET", "/grab/prompt"):
+            guard let node = GrabRegistry.shared.selectedNode() else {
+                return json(PromptResponse(selectedID: nil, prompt: nil))
+            }
+            let comment = parsed.queryValue("comment")
+            let prompt = GrabPromptBuilder.prompt(for: node, in: GrabRegistry.shared.snapshot(), comment: comment ?? "")
+            return json(PromptResponse(selectedID: node.id, prompt: prompt))
+        case ("GET", "/grab/copied"):
+            return json(CopiedResponse(value: GrabClipboard.lastCopied()))
         case ("GET", "/grab/mode"):
             return json(ModeResponse(enabled: GrabRegistry.shared.isInspecting))
         case ("POST", "/grab/mode"):
@@ -263,6 +272,8 @@ public final class GrabDebugServer: @unchecked Sendable {
 private struct ModeRequest: Codable { var enabled: Bool? }
 private struct ModeResponse: Codable { var enabled: Bool }
 private struct SelectedResponse: Codable { var selectedID: String? }
+private struct PromptResponse: Codable { var selectedID: String?; var prompt: String? }
+private struct CopiedResponse: Codable { var value: String? }
 private struct HealthResponse: Codable { var ok: Bool; var version: String; var nodes: Int; var transport: GrabTransportStatus }
 private struct StopResponse: Codable { var stopped: Bool }
 private struct SelectPointRequest: Codable { var x: Double; var y: Double; var coordinateSpace: String? }

@@ -110,6 +110,12 @@ private final class MCPServer {
                 value = try client.request(method: "GET", path: "/grab/tree")
             case "grab_selected":
                 value = try client.request(method: "GET", path: "/grab/selected")
+            case "grab_prompt":
+                let comment = arguments["comment"] as? String
+                let query = comment.map { "?comment=\($0.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")" } ?? ""
+                value = try client.request(method: "GET", path: "/grab/prompt\(query)")
+            case "grab_copied":
+                value = try client.request(method: "GET", path: "/grab/copied")
             case "grab_set_mode":
                 guard let enabled = arguments["enabled"] as? Bool else {
                     throw MCPToolError.invalidArguments("grab_set_mode requires a boolean enabled argument")
@@ -173,6 +179,12 @@ private final class MCPServer {
             tool("grab_health", "Return GrabKit health and active transport status.", properties: [:]),
             tool("grab_tree", "Return the current GrabKit UI tree snapshot.", properties: [:]),
             tool("grab_selected", "Return the currently selected GrabKit node, if any.", properties: [:]),
+            tool(
+                "grab_prompt",
+                "Return an agent-ready prompt for the currently selected GrabKit node.",
+                properties: ["comment": ["type": "string"]]
+            ),
+            tool("grab_copied", "Return the most recent string copied by GrabKit copy actions.", properties: [:]),
             tool(
                 "grab_set_mode",
                 "Enable or disable GrabKit inspect mode.",

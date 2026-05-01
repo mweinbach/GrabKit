@@ -7,8 +7,11 @@ import AppKit
 #endif
 
 public enum GrabClipboard {
+    private static var lastCopiedString: String?
+
     @discardableResult
     public static func copy(_ string: String) -> Bool {
+        lastCopiedString = string
         #if os(iOS) && canImport(UIKit)
         UIPasteboard.general.string = string
         return true
@@ -18,5 +21,9 @@ public enum GrabClipboard {
         #else
         return false
         #endif
+    }
+
+    public static func lastCopied() -> String? {
+        lastCopiedString
     }
 }
